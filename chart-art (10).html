@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chart Art</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#131722; font-family:'Courier New',monospace;
+  display:flex; flex-direction:column; height:100vh; overflow:hidden;
+}
+
+/* ── Side toolbar ─────────────────────────────────────── */
+#sidebar {
+  width:clamp(64px, 5vw, 100px); flex-shrink:0;
+  position:fixed; left:clamp(8px, 1vw, 18px); top:50%; transform:translateY(-50%);
+  height:auto;
+  background:rgba(14,18,30,0.82);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(80,120,180,0.18);
+  box-shadow:0 8px 40px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(100,160,255,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+  border-radius:clamp(8px, 1vw, 16px);
+  display:flex; flex-direction:column; align-items:center;
+  padding:clamp(6px, 0.5vw, 12px) 0; gap:clamp(1px, 0.2vw, 4px);
+  overflow-y:auto; overflow-x:hidden;
+  z-index:100;
+  max-height:90vh;
+  height:auto !important;
+}
+#sidebar::-webkit-scrollbar { width:3px; }
+#sidebar::-webkit-scrollbar-thumb { background:#2a3550; border-radius:2px; }
+
+.tb-group {
+  display:flex; flex-direction:column; align-items:center;
+  width:100%; gap:2px; padding:4px 0;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.tb-group:last-child { border-bottom:none; }
+.tb-label {
+  font-size:clamp(6px, 0.55vw, 10px); letter-spacing:1.5px; color:#6a9abb;
+  text-transform:uppercase; margin-bottom:2px; text-align:center;
+  -webkit-font-smoothing: antialiased;
+  text-shadow: 0 0 5px rgba(100,160,210,0.6);
+}
+
+.tb-btn {
+  width:clamp(44px, 4vw, 80px); height:clamp(38px, 3.5vw, 70px);
+  background:transparent; border:1px solid transparent; color:#e8f4ff;
+  font-family:'Courier New',monospace; font-size:clamp(8px, 0.7vw, 13px); letter-spacing:0.5px;
+  text-transform:uppercase; cursor:pointer; border-radius:clamp(4px, 0.5vw, 8px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; transition:all 0.15s; text-align:center; line-height:1.2;
+  -webkit-font-smoothing: antialiased;
+  text-shadow: 0 0 6px rgba(160,210,255,0.7);
+}
+.tb-btn .ico { font-size:clamp(14px, 1.4vw, 24px); line-height:1; filter: drop-shadow(0 0 3px rgba(160,210,255,0.6)); }
+.tb-btn:hover {
+  background:rgba(30,50,80,0.6); border-color:rgba(80,150,220,0.3);
+  color:#ffffff;
+  text-shadow: 0 0 8px rgba(160,210,255,0.9);
+}
+
+/* color variants */
+.tb-btn.red   { color:#ffb0b0; text-shadow: 0 0 6px rgba(255,120,120,0.7); }
+.tb-btn.red:hover { background:rgba(60,15,15,0.6); border-color:rgba(200,60,60,0.3); color:#ffd0d0;
+  text-shadow: 0 0 8px rgba(255,140,140,0.9); }
+.tb-btn.green { color:#80ffcc; text-shadow: 0 0 6px rgba(80,220,160,0.7); }
+.tb-btn.green:hover { background:rgba(10,40,25,0.6); border-color:rgba(40,180,120,0.3); color:#b0ffe0;
+  text-shadow: 0 0 8px rgba(100,255,180,0.9); }
+.tb-btn.gold  { color:#ffe080; text-shadow: 0 0 6px rgba(255,200,60,0.7); }
+.tb-btn.gold:hover  { background:rgba(40,30,10,0.6); border-color:rgba(220,170,40,0.3); color:#fff0a0;
+  text-shadow: 0 0 8px rgba(255,220,80,0.9); }
+.tb-btn.purple { color:#d8a0ff; text-shadow: 0 0 6px rgba(190,120,255,0.7); }
+.tb-btn.purple:hover { background:rgba(30,15,50,0.6); border-color:rgba(160,80,240,0.3); color:#ecc8ff;
+  text-shadow: 0 0 8px rgba(210,150,255,0.9); }
+.tb-btn.blue  { color:#90c8ff; text-shadow: 0 0 6px rgba(100,180,255,0.7); }
+.tb-btn.blue:hover  { background:rgba(10,25,50,0.6); border-color:rgba(60,140,220,0.3); color:#b8dcff;
+  text-shadow: 0 0 8px rgba(130,200,255,0.9); }
+
+/* active state for toggle tools */
+.tb-btn.active { background:rgba(30,40,60,0.8); border-color:#a855f7; color:#e0b0ff;
+  box-shadow:0 0 10px #a855f733;
+  text-shadow: 0 0 8px rgba(200,140,255,0.9); }
+.tb-btn.active:hover { border-color:#c084fc; color:#c084fc; }
+
+/* ── Canvas area ──────────────────────────────────────── */
+#main {
+  flex:1; display:flex; flex-direction:column; overflow:hidden; width:100%;
+}
+#topbar {
+  display:flex; align-items:center; gap:8px; padding:4px 10px;
+  background:#141926; border-bottom:1px solid #1e2535; flex-shrink:0;
+}
+#topbar-info { font-size:10px; color:#2a3a50; letter-spacing:1px; margin-left:auto; }
+#cut-hint {
+  font-size:9px; color:#a855f799; letter-spacing:1px;
+  display:none; padding:2px 8px; border:1px solid #a855f733; border-radius:3px;
+}
+
+#canvas-wrap { flex:1; overflow:hidden; position:relative; cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cline x1='16' y1='2' x2='16' y2='12' stroke='black' stroke-width='3'/%3E%3Cline x1='16' y1='20' x2='16' y2='30' stroke='black' stroke-width='3'/%3E%3Cline x1='2' y1='16' x2='12' y2='16' stroke='black' stroke-width='3'/%3E%3Cline x1='20' y1='16' x2='30' y2='16' stroke='black' stroke-width='3'/%3E%3Cline x1='16' y1='2' x2='16' y2='12' stroke='white' stroke-width='1.5'/%3E%3Cline x1='16' y1='20' x2='16' y2='30' stroke='white' stroke-width='1.5'/%3E%3Cline x1='2' y1='16' x2='12' y2='16' stroke='white' stroke-width='1.5'/%3E%3Cline x1='20' y1='16' x2='30' y2='16' stroke='white' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='2' fill='white' stroke='black' stroke-width='1'/%3E%3C/svg%3E") 16 16, crosshair; }
+canvas { display:block; }
+
+/* ── Floating panels ──────────────────────────────────── */
+.panel {
+  display:none; position:fixed; background:#141926;
+  border:1px solid #1e2a3a; padding:16px; z-index:100;
+  color:#556; font-size:10px; min-width:220px;
+}
+.panel h4 { letter-spacing:2px; margin-bottom:12px; font-size:10px; text-transform:uppercase; }
+.panel label { display:block; margin-bottom:8px; color:#445; font-size:9px; letter-spacing:1px; }
+.panel input[type=range] { width:100%; margin-top:3px; accent-color:#26a69a; }
+.panel input[type=text] {
+  width:100%; background:#0f141e; border:1px solid #1e2a3a; color:#889;
+  padding:4px 8px; font-family:'Courier New',monospace; font-size:11px;
+  margin-top:3px; outline:none; border-radius:2px;
+}
+.panel input[type=text]:focus { border-color:#f0b429; }
+.panel input[type=file] { color:#445; font-size:9px; width:100%; margin-bottom:8px; }
+.panel-btn {
+  width:100%; margin-top:6px; padding:5px;
+  background:#1e2535; border:1px solid #2a3550; color:#556;
+  font-family:'Courier New',monospace; font-size:9px; letter-spacing:1px;
+  text-transform:uppercase; cursor:pointer; border-radius:2px;
+}
+.panel-btn:hover { border-color:#26a69a; color:#26a69a; }
+.panel-close { position:absolute; top:8px; right:8px; background:none; border:none; color:#334; cursor:pointer; font-size:14px; padding:2px 6px; }
+.panel-close:hover { color:#889; }
+
+#ov-panel  { bottom:20px; right:20px; }
+#ov-panel h4 { color:#26a69a; }
+#mcap-panel { bottom:20px; left:80px; }
+#mcap-panel h4 { color:#f0b429; }
+
+/* ── Legend ───────────────────────────────────────────── */
+#legend-bg { display:none; position:fixed; inset:0; background:#00000099; z-index:99; }
+#legend-box {
+  display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:#141926; border:1px solid #1e2a3a; padding:24px 30px; z-index:100;
+  min-width:400px; color:#556; font-size:11px; line-height:2.2;
+}
+#legend-box h3 { color:#26a69a; letter-spacing:3px; margin-bottom:12px; font-size:11px; }
+.lrow { display:flex; gap:12px; }
+.lkey { color:#889; min-width:200px; }
+.lsec { color:#26a07a88; font-size:9px; letter-spacing:2px; margin:8px 0 4px; text-transform:uppercase; }
+
+/* ── Zoom controls ───────────────────────────────────── */
+#zoom-controls {
+  position:fixed; bottom:20px; right:20px;
+  display:flex; flex-direction:column; gap:8px;
+  z-index:100;
+}
+.zoom-btn {
+  width:clamp(36px, 3vw, 52px); height:clamp(36px, 3vw, 52px);
+  background:rgba(14,18,30,0.82);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(80,120,180,0.18);
+  box-shadow:0 4px 20px rgba(0,0,0,0.6);
+  border-radius:50%;
+  color:#90c8ff;
+  font-size:clamp(18px, 1.8vw, 28px);
+  line-height:1;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s;
+  text-shadow: 0 0 6px rgba(100,180,255,0.7);
+}
+.zoom-btn:hover {
+  background:rgba(30,50,80,0.9);
+  border-color:rgba(80,150,220,0.4);
+  color:#b8dcff;
+  text-shadow: 0 0 10px rgba(130,200,255,0.9);
+}
+
+/* ── Tool hint panel ─────────────────────────────────── */
+#tool-hint {
+  position:fixed;
+  background:rgba(14,18,30,0.92);
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(168,85,247,0.3);
+  box-shadow:0 4px 32px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(168,85,247,0.1);
+  border-radius:12px;
+  padding:clamp(10px, 1.2vw, 20px) clamp(14px, 1.5vw, 26px);
+  max-width:clamp(200px, 18vw, 320px);
+  min-width:clamp(180px, 15vw, 280px);
+  display:none;
+  z-index:99;
+  animation: hintFade 0.2s ease;
+}
+@keyframes hintFade {
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+#tool-hint-name {
+  font-family:'Courier New',monospace;
+  font-size:clamp(11px, 1vw, 16px);
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:#a855f7;
+  text-shadow:0 0 8px rgba(168,85,247,0.8);
+  margin-bottom:clamp(6px, 0.7vw, 12px);
+  padding-bottom:clamp(4px, 0.5vw, 8px);
+  border-bottom:1px solid rgba(168,85,247,0.2);
+}
+#tool-hint-body {
+  font-family:'Courier New',monospace;
+  font-size:clamp(10px, 0.85vw, 14px);
+  color:#7a9abb;
+  line-height:2;
+  letter-spacing:0.5px;
+}
+#tool-hint-body span {
+  color:#e8f4ff;
+  text-shadow:0 0 5px rgba(160,210,255,0.6);
+}
+
+/* ── Edit mode toggle ────────────────────────────────── */
+#mode-toggle {
+  display:flex; flex-direction:column; align-items:center;
+  width:100%; padding:6px 4px 4px; gap:3px;
+  border-bottom:2px solid rgba(255,255,255,0.08);
+}
+#mode-toggle .mode-label {
+  font-size:clamp(7px,0.6vw,10px); letter-spacing:2px; color:#6a9abb;
+  text-transform:uppercase; -webkit-font-smoothing:antialiased;
+}
+.mode-btn {
+  width:clamp(44px,4vw,80px); height:clamp(34px,3vw,54px);
+  background:transparent; border:1px solid rgba(255,255,255,0.15);
+  font-family:'Courier New',monospace; font-size:clamp(9px,0.8vw,14px);
+  letter-spacing:1px; text-transform:uppercase; cursor:pointer;
+  border-radius:clamp(3px,0.4vw,6px); color:#8ab0cc; transition:all 0.15s;
+  -webkit-font-smoothing:antialiased;
+  text-shadow:0 0 6px rgba(120,180,220,0.5);
+}
+.mode-btn.candle-active {
+  background:rgba(38,160,122,0.25); border-color:#26a07a;
+  color:#26a07a; text-shadow:0 0 8px rgba(38,160,122,1);
+}
+.mode-btn.wick-active {
+  background:rgba(240,180,41,0.2); border-color:#f0b429;
+  color:#f0b429; text-shadow:0 0 8px rgba(240,180,41,1);
+}
+
+/* ── Dock toggle button ──────────────────────────────── */
+#dock-btn {
+  width:clamp(44px, 4vw, 80px); height:clamp(22px, 2vw, 32px);
+  background:transparent; border:1px solid rgba(255,255,255,0.08);
+  font-family:'Courier New',monospace; font-size:clamp(6px,0.55vw,9px);
+  letter-spacing:1.5px; text-transform:uppercase; cursor:pointer;
+  border-radius:clamp(3px,0.4vw,6px); color:#4a6a8a; transition:all 0.15s;
+  -webkit-font-smoothing:antialiased;
+  text-shadow:0 0 5px rgba(100,160,210,0.4);
+  margin-bottom:2px;
+}
+#dock-btn:hover { border-color:#4488ff; color:#4488ff; text-shadow:0 0 6px rgba(68,136,255,0.7); }
+#dock-btn.docked { border-color:#4488ff44; color:#4488ff88; }
+
+/* Docked sidebar overrides */
+#sidebar.docked {
+  left:0 !important;
+  top:0 !important;
+  transform:none !important;
+  height:100vh !important;
+  max-height:100vh !important;
+  border-radius:0 !important;
+  border-left:none !important;
+  border-top:none !important;
+  border-bottom:none !important;
+  border-right:1px solid rgba(80,120,180,0.25) !important;
+  overflow-y:auto;
+}
+
+/* ── Overlay lock button on canvas ──────────────────── */
+#ov-lock-btn {
+  position:fixed;
+  background:rgba(14,18,30,0.88);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(68,136,255,0.4);
+  border-radius:6px;
+  color:#4488ff;
+  font-family:'Courier New',monospace;
+  font-size:clamp(9px,0.75vw,13px);
+  letter-spacing:1px;
+  padding:4px 8px;
+  cursor:pointer;
+  display:none;
+  z-index:101;
+  transition:all 0.15s;
+  text-shadow:0 0 6px rgba(68,136,255,0.6);
+  box-shadow:0 2px 12px rgba(0,0,0,0.5);
+}
+#ov-lock-btn:hover { border-color:#4488ff; background:rgba(20,30,60,0.95); }
+#ov-lock-btn.locked { border-color:rgba(100,100,120,0.4); color:#556; text-shadow:none; }
+</style>
+</head>
+<body>
+
+<div id="legend-bg"  onclick="closeLegend()"></div>
+<div id="legend-box">
+  <h3>HOTKEYS & CONTROLS</h3>
+  <div class="lsec">Drawing</div>
+  <div class="lrow"><span class="lkey">Left drag</span><span>Draw single candle</span></div>
+  <div class="lrow"><span class="lkey">Click near join</span><span>Move close/open join point</span></div>
+  <div class="lrow"><span class="lkey">Shift + click ×2</span><span>Angle join points between 2 clicks</span></div>
+  <div class="lrow"><span class="lkey">Double click</span><span>Skip to next candle</span></div>
+  <div class="lrow"><span class="lkey">Hold E + click</span><span>Erase candle</span></div>
+  <div class="lsec">Wicks</div>
+  <div class="lrow"><span class="lkey">Right click + drag</span><span>Draw wick</span></div>
+  <div class="lrow"><span class="lkey">Shift + right drag</span><span>Flat wick line</span></div>
+  <div class="lrow"><span class="lkey">Ctrl+Shift + right drag</span><span>Freeform wick arc</span></div>
+  <div class="lsec">Cut Tools (select in sidebar)</div>
+  <div class="lrow"><span class="lkey">Left click/drag</span><span>Cut bottom edge</span></div>
+  <div class="lrow"><span class="lkey">Right click/drag</span><span>Cut top edge</span></div>
+  <div class="lrow"><span class="lkey">Escape</span><span>Exit cut mode</span></div>
+  <div class="lsec">View & Navigation</div>
+  <div class="lrow"><span class="lkey">Scroll wheel</span><span>Zoom toward cursor</span></div>
+  <div class="lrow"><span class="lkey">Middle click / Space drag</span><span>Pan canvas</span></div>
+  <div class="lrow"><span class="lkey">Ctrl+Z</span><span>Undo</span></div>
+  <br>
+  <button class="panel-btn" onclick="closeLegend()">Close</button>
+</div>
+
+<div id="ov-panel" class="panel">
+  <button class="panel-close" onclick="this.parentElement.style.display='none'">✕</button>
+  <h4 style="color:#26a69a">Image Overlay</h4>
+  <input type="file" accept="image/*" id="imgFile" onchange="loadOverlay(event)">
+  <label>Opacity<input type="range" id="ovOpacity" min="0" max="100" value="40" oninput="render()"></label>
+  <button id="ov-select-btn" class="panel-btn" onclick="toggleOvSelect()" style="border-color:#26a69a;color:#26a69a;margin-bottom:4px">🔓 UNLOCKED — click to lock</button>
+  <button class="panel-btn" onclick="ovImg=null;ovSelected=false;render()">Remove Image</button>
+</div>
+
+<div id="mcap-panel" class="panel">
+  <button class="panel-close" onclick="this.parentElement.style.display='none'">✕</button>
+  <h4 style="color:#f0b429">Market Cap Levels</h4>
+  <label>Max MCap (top line)
+    <input type="text" id="mcapMax" placeholder="e.g. 10M" oninput="render()">
+  </label>
+  <label>Min MCap (bottom line)
+    <input type="text" id="mcapMin" placeholder="e.g. 500K" oninput="render()">
+  </label>
+</div>
+
+<div id="sidebar">
+
+  <!-- Dock toggle -->
+  <button id="dock-btn" onclick="toggleDock()" title="Float/Dock sidebar">⊞ DOCK</button>
+
+  <!-- Mode Toggle -->
+  <div id="mode-toggle">
+    <div class="mode-label">Cut Target</div>
+    <button id="mode-candle-btn" class="mode-btn candle-active" onclick="setEditMode('candles')" data-hint="mode-candles">▮ Body</button>
+    <button id="mode-wick-btn"   class="mode-btn"               onclick="setEditMode('wicks')" data-hint="mode-wicks">┃ Wicks</button>
+  </div>
+
+  <!-- History -->
+  <div class="tb-group">
+    <div class="tb-label">History</div>
+    <button class="tb-btn red" onclick="undoLast()" data-hint="undo">
+      <span class="ico">↩</span>Undo
+    </button>
+    <button class="tb-btn red" onclick="redoLast()" data-hint="redo">
+      <span class="ico">↪</span>Redo
+    </button>
+    <button class="tb-btn red" onclick="clearAll()" data-hint="clear">
+      <span class="ico">✕</span>Clear
+    </button>
+  </div>
+
+  <!-- Fill -->
+  <div class="tb-group">
+    <div class="tb-label">Fill</div>
+    <button class="tb-btn green" onclick="fillCandles()" data-hint="fill-candles">
+      <span class="ico">▮</span>Candles
+    </button>
+    <button class="tb-btn green" onclick="fillWicks()" data-hint="fill-wicks">
+      <span class="ico">┃</span>Wicks
+    </button>
+  </div>
+
+  <!-- Cut -->
+  <div class="tb-group">
+    <div class="tb-label" id="cut-group-label">Cut</div>
+    <button id="cut-straight-btn" class="tb-btn purple" onclick="setCutMode('straight')" data-hint="straight">
+      <span class="ico">━</span>Straight
+    </button>
+    <button id="cut-diagonal-btn" class="tb-btn purple" onclick="setCutMode('diagonal')" data-hint="diagonal">
+      <span class="ico">╱</span>Diagonal
+    </button>
+    <button id="cut-arc-btn" class="tb-btn purple" onclick="setCutMode('arc')" data-hint="arc">
+      <span class="ico">∿</span>Arc
+    </button>
+  </div>
+
+  <!-- View -->
+  <div class="tb-group">
+    <div class="tb-label">View</div>
+    <button class="tb-btn blue" onclick="zoom=3;panX=0;panY=0;render()" data-hint="reset">
+      <span class="ico">⟳</span>Reset
+    </button>
+    <button class="tb-btn blue" onclick="toggleFS()" data-hint="fullscreen">
+      <span class="ico">⛶</span>Full
+    </button>
+  </div>
+
+  <!-- Settings -->
+  <div class="tb-group">
+    <div class="tb-label">Settings</div>
+    <button class="tb-btn green" onclick="document.getElementById('ov-panel').style.display='block'" data-hint="overlay">
+      <span class="ico">🖼</span>Overlay
+    </button>
+    <button class="tb-btn gold" onclick="document.getElementById('mcap-panel').style.display='block'" data-hint="mcap">
+      <span class="ico">$</span>MCap
+    </button>
+    <button class="tb-btn" onclick="exportPNG()" data-hint="export">
+      <span class="ico">⬇</span>Export
+    </button>
+  </div>
+
+  <!-- Help -->
+  <div class="tb-group">
+    <button class="tb-btn" onclick="showLegend()" data-hint="help">
+      <span class="ico">?</span>Help
+    </button>
+  </div>
+
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <span id="cut-hint">✂ CUT MODE — Left click = bottom · Right click = top · Esc to exit</span>
+    <span id="topbar-info">candle 1/360</span>
+  </div>
+  <div id="canvas-wrap"><canvas id="c"></canvas></div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const NC      = 360;   // num candles
+const CW      = 14;    // candle body width px (logical)
+const GW      = 4;     // gap between candles
+const WW      = 2;     // wick width
+const COL     = CW+GW; // column width
+const RH      = 6;     // row height px (logical)
+const PX      = 24;
+const PY      = 20;
+const SNAP    = 10;
+const JOIN_T  = 6;
+
+const LW = NC*COL + PX*2;
+
+// ROWS: calculated so the grid fills the viewport at zoom=1 (no black bars)
+// We want LH()/LW == vpH/vpW so it fills both axes
+function calcROWS() {
+  const topbar  = document.getElementById('topbar');
+  const vpW = window.innerWidth;
+  const vpH = window.innerHeight - (topbar ? topbar.offsetHeight : 28);
+  const targetH = vpH * (LW / vpW);
+  return Math.max(100, Math.round((targetH - PY*2) / RH));
+}
+let ROWS = 100; // placeholder, set in resize()
+function LH() { return ROWS*RH + PY*2; }
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+const cv  = document.getElementById('c');
+const ctx = cv.getContext('2d');
+let zoom  = 3.0;  // start zoomed in
+let panX  = 0;
+let panY  = 0;
+let isPanning = false;
+let panStart  = null;  // {sx, sy, panX, panY}
+
+function resize() {
+  const topbar  = document.getElementById('topbar');
+  cv.width  = window.innerWidth;
+  cv.height = window.innerHeight - topbar.offsetHeight;
+  ROWS = calcROWS();
+}
+
+function ez() {
+  // effectiveZoom: scale so LW×LH() fits inside canvas at zoom=1
+  const bz = Math.min(cv.width/LW, cv.height/LH());
+  return zoom * bz;
+}
+
+function setZoom(z, cursorLX, cursorLY) {
+  const oldZ = ez();
+  zoom = Math.max(1.0, Math.min(20, z));  // min=1 = fully zoomed out
+  if (cursorLX !== undefined) {
+    const newZ = ez();
+    panX = (cursorLX+panX)*oldZ/newZ + LW*(newZ-oldZ)/(2*newZ) - cursorLX;
+    panY = (cursorLY+panY)*oldZ/newZ + LH()*(newZ-oldZ)/(2*newZ) - cursorLY;
+  }
+  clampPan();
+  render();
+}
+
+function clampPan() {
+  // prevent panning outside the logical canvas bounds
+  const z = ez();
+  const vw = cv.width, vh = cv.height;
+  // screen extents of the grid: left edge at (0+panX)*z + (vw-LW*z)/2
+  // we want left edge <= 0 and right edge >= vw
+  // left  = panX*z + (vw-LW*z)/2 <= 0  =>  panX <= (LW*z-vw)/(2z) = (LW - vw/z)/2
+  // right = (LW+panX)*z + (vw-LW*z)/2 >= vw  =>  panX >= -(vw/z - LW... same thing
+  if (z <= vw/LW) { panX = 0; } else {
+    const maxPan = (LW - vw/z) / 2;
+    panX = Math.max(-maxPan, Math.min(maxPan, panX));
+  }
+  if (z <= vh/LH()) { panY = 0; } else {
+    const maxPan = (LH() - vh/z) / 2;
+    panY = Math.max(-maxPan, Math.min(maxPan, panY));
+  }
+}
+
+window.addEventListener('resize', () => { resize(); render(); });
+
+// ── Logical ↔ Screen ─────────────────────────────────────────────────────────
+function l2s(lx, ly) {
+  const z = ez();
+  return {
+    x: (lx + panX)*z + (cv.width  - LW*z)/2,
+    y: (ly + panY)*z + (cv.height - LH()*z)/2,
+  };
+}
+function s2l(sx, sy) {
+  const z = ez();
+  return {
+    x: (sx - (cv.width  - LW*z)/2) / z - panX,
+    y: (sy - (cv.height - LH()*z)/2) / z - panY,
+  };
+}
+function evL(e) {
+  const r = cv.getBoundingClientRect();
+  return s2l(e.clientX-r.left, e.clientY-r.top);
+}
+
+// ── Grid coords ───────────────────────────────────────────────────────────────
+function cx(idx)  { return PX + idx*COL; }
+function wx(idx)  { return PX + idx*COL + Math.floor(CW/2) - Math.floor(WW/2); }
+function r2y(row) { return PY + row*RH; }
+function y2r(y)   { return Math.max(0, Math.min(ROWS-1, Math.round((y-PY)/RH))); }
+function x2i(x)   { return Math.floor((x-PX)/COL); }
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const candles = new Array(NC).fill(null);
+let activeIdx  = 0;
+const history  = [];   // undo stack
+const redoStack = [];  // redo stack
+const MAX_HIST = 50;
+
+function saveHistory() {
+  history.push({ candles: candles.map(c => c ? {...c} : null), activeIdx });
+  if (history.length > MAX_HIST) history.shift();
+  redoStack.length = 0; // any new action clears redo
+}
+let hoverIdx   = null;
+let eraseMode  = false;
+
+let dragging   = false;
+let dragType   = null;
+let dragOpenRow= 0;
+let dragPreview= null;
+let editingIdx = null;
+let wickTarget = null;
+
+// overlay
+let ovImg=null, ovX=100, ovY=100, ovW=300, ovH=300;
+let ovDrag=null, ovDS=null;
+let ovSelected=false;
+
+// ── Snap ──────────────────────────────────────────────────────────────────────
+function snapY(ly) {
+  let best=ly, bd=SNAP;
+  for (const c of candles) {
+    if (!c) continue;
+    for (const v of [r2y(c.open),r2y(c.close),c.high!=null?r2y(c.high):null,c.low!=null?r2y(c.low):null]) {
+      if (v==null) continue;
+      const d=Math.abs(ly-v);
+      if (d<bd){bd=d;best=v;}
+    }
+  }
+  return best;
+}
+
+function prevClose() {
+  if (activeIdx===0) return null;
+  return candles[activeIdx-1]?.close ?? null;
+}
+
+// ── Bulk wick ─────────────────────────────────────────────────────────────────
+function applyWick(idx, row, side, requireExisting=false) {
+  const c=candles[idx]; if(!c) return;
+  // If requireExisting, only apply if the wick already exists on that side
+  if (requireExisting && side==='high' && c.high===null) return;
+  if (requireExisting && side==='low'  && c.low===null)  return;
+  const bt=Math.min(c.open,c.close), bb=Math.max(c.open,c.close);
+  if (side==='high') candles[idx]={...c, high:Math.min(row,bt)};
+  else               candles[idx]={...c, low :Math.max(row,bb)};
+}
+let wickSide, wickFixedRow;
+
+// ── Wick cut modes ────────────────────────────────────────────────────────────
+let wickCutDiag1 = null, wickCutDiagMarker = null;
+
+function applyWickStraight(idx, row, side) {
+  applyWick(idx, row, side);
+}
+
+function applyWickDiagonal(c1, c2) {
+  saveHistory();
+  const lo = Math.min(c1.idx, c2.idx), hi = Math.max(c1.idx, c2.idx);
+  const leftRow  = c1.idx <= c2.idx ? c1.row : c2.row;
+  const rightRow = c1.idx <= c2.idx ? c2.row : c1.row;
+  for (let i = lo; i <= hi; i++) {
+    if (!candles[i]) continue;
+    const t = hi===lo ? 0 : (i-lo)/(hi-lo);
+    const r2 = Math.round(leftRow + t*(rightRow - leftRow));
+    applyWick(i, r2, c1.side, true);
+  }
+  wickCutDiag1 = null; wickCutDiagMarker = null;
+  render();
+}
+
+// join-point paint state
+let paintStartIdx  = null;  // first candle index being painted
+let paintStartRow  = null;  // close row at start click
+let paintFixedRow  = null;  // for flat mode
+let paintStartOpen = null;
+// for shift (two-click angle): first click stored, waiting for second
+let shiftClick1    = null;  // { idx, row }
+
+// ── Set join point (close of candle idx, open of idx+1) ───────────────────────
+function setJoin(idx, row) {
+  const c = candles[idx];
+  if (!c) return;
+  candles[idx] = { ...c, close: row };
+  if (candles[idx+1]) candles[idx+1] = { ...candles[idx+1], open: row };
+}
+
+// Chop bottom: set the bottom edge of the body, keep top fixed
+function chopBottom(idx, row) {
+  const c = candles[idx]; if (!c) return;
+  const top = Math.min(c.open, c.close); // top edge stays
+  const newBot = Math.max(row, top);     // can't go above top
+  if (c.close >= c.open) {
+    // red candle: close is bottom
+    candles[idx] = { ...c, close: newBot };
+    if (candles[idx+1]) candles[idx+1] = { ...candles[idx+1], open: newBot };
+  } else {
+    // green candle: open is bottom
+    candles[idx] = { ...c, open: newBot };
+    if (candles[idx-1]) candles[idx-1] = { ...candles[idx-1], close: newBot };
+  }
+}
+
+// Chop top: set the top edge of the body, keep bottom fixed
+function chopTop(idx, row) {
+  const c = candles[idx]; if (!c) return;
+  const bot = Math.max(c.open, c.close); // bottom edge stays
+  const newTop = Math.min(row, bot);     // can't go below bottom
+  if (c.close <= c.open) {
+    // green candle: close is top
+    candles[idx] = { ...c, close: newTop };
+    if (candles[idx+1]) candles[idx+1] = { ...candles[idx+1], open: newTop };
+  } else {
+    // red candle: open is top
+    candles[idx] = { ...c, open: newTop };
+    if (candles[idx-1]) candles[idx-1] = { ...candles[idx-1], close: newTop };
+  }
+}
+
+// ── Paint join points across a range with a row function ──────────────────────
+function paintJoins(startIdx, endIdx, rowFn) {
+  const lo = Math.min(startIdx, endIdx);
+  const hi = Math.max(startIdx, endIdx);
+  for (let i = lo; i <= hi; i++) {
+    if (candles[i]) setJoin(i, rowFn(i, lo, hi));
+  }
+}
+
+// ── Draw ──────────────────────────────────────────────────────────────────────
+function drawGrid() {
+  const hasAny = candles.some(c=>c!==null);
+  const hi = (!hasAny && hoverIdx!==null) ? hoverIdx : activeIdx;
+  ctx.fillStyle='#1a2a28';
+  ctx.fillRect(cx(hi), PY, CW, LH()-PY*2);
+
+  ctx.strokeStyle='#2a3550'; ctx.lineWidth=1;
+  for (let r=0;r<=ROWS;r++) {
+    ctx.beginPath(); ctx.moveTo(PX,PY+r*RH); ctx.lineTo(LW-PX,PY+r*RH); ctx.stroke();
+  }
+  for (let i=0;i<=NC;i++) {
+    const x=PX+i*COL;
+    ctx.beginPath(); ctx.moveTo(x,PY); ctx.lineTo(x,LH()-PY); ctx.stroke();
+  }
+}
+
+function drawCandle(idx, c, alpha) {
+  if (!c) return;
+  ctx.globalAlpha = alpha??1;
+  const x=cx(idx), wx2=wx(idx);
+  const bull = c.close<=c.open;
+  const color = bull ? '#26a07a' : '#d63040';
+  const bt=Math.min(c.open,c.close), bb=Math.max(c.open,c.close);
+
+  ctx.fillStyle='#fff';
+  if (c.high!=null && c.high<bt)
+    ctx.fillRect(wx2, r2y(c.high), WW, r2y(bt)-r2y(c.high));
+  if (c.low!=null && c.low>bb)
+    ctx.fillRect(wx2, r2y(bb), WW, r2y(c.low)-r2y(bb));
+
+  ctx.fillStyle=color; ctx.shadowColor=color; ctx.shadowBlur=6;
+  ctx.fillRect(x, r2y(bt), CW, Math.max(RH, r2y(bb)-r2y(bt)));
+  ctx.shadowBlur=0;
+
+  ctx.globalAlpha=0.25; ctx.fillStyle='#fff';
+  ctx.fillRect(x, r2y(c.open), CW, 1);
+  ctx.globalAlpha=alpha??1;
+}
+
+function drawMarker() {
+  const x=cx(activeIdx)+CW/2;
+  ctx.strokeStyle='#26a07a44'; ctx.lineWidth=1;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(x,PY); ctx.lineTo(x,LH()-PY); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawOpenGuide(row) {
+  ctx.strokeStyle='#ffffff18'; ctx.lineWidth=1;
+  ctx.setLineDash([2,6]);
+  ctx.beginPath(); ctx.moveTo(PX,r2y(row)); ctx.lineTo(LW-PX,r2y(row)); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ── Mcap level drawing ────────────────────────────────────────────────────────
+function parseMcap(str) {
+  if (!str) return null;
+  str = str.trim().toUpperCase();
+  const m = str.match(/^([\d.]+)\s*([KMBT]?)$/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  const mul = {K:1e3, M:1e6, B:1e9, T:1e12, '':1}[m[2]];
+  return isNaN(n) ? null : n * mul;
+}
+
+function formatMcap(n) {
+  if (n === null) return '';
+  if (n >= 1e12) return (n/1e12).toFixed(2).replace(/\.?0+$/,'') + 'T';
+  if (n >= 1e9)  return (n/1e9 ).toFixed(2).replace(/\.?0+$/,'') + 'B';
+  if (n >= 1e6)  return (n/1e6 ).toFixed(2).replace(/\.?0+$/,'') + 'M';
+  if (n >= 1e3)  return (n/1e3 ).toFixed(2).replace(/\.?0+$/,'') + 'K';
+  return n.toString();
+}
+
+function getExtremeRows() {
+  // Returns the highest (lowest row number = top) and lowest (highest row number = bottom)
+  // across all candle bodies and wicks
+  let topRow = null, botRow = null;
+  for (const c of candles) {
+    if (!c) continue;
+    const t = c.high != null ? c.high : Math.min(c.open, c.close);
+    const b = c.low  != null ? c.low  : Math.max(c.open, c.close);
+    if (topRow === null || t < topRow) topRow = t;
+    if (botRow === null || b > botRow) botRow = b;
+  }
+  return { topRow, botRow };
+}
+
+function drawMcapLines(z) {
+  const maxVal = parseMcap(document.getElementById('mcapMax').value);
+  const minVal = parseMcap(document.getElementById('mcapMin').value);
+  const { topRow, botRow } = getExtremeRows();
+  if (topRow === null) return;
+
+  ctx.save();
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1 / z;
+
+  if (maxVal !== null && topRow !== null) {
+    const y = r2y(topRow);
+    ctx.strokeStyle = '#f0b42966';
+    ctx.beginPath(); ctx.moveTo(PX, y); ctx.lineTo(LW - PX, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#f0b429cc';
+    ctx.font = `${11/z}px Courier New`;
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + formatMcap(maxVal), LW - PX - 4/z, y - 3/z);
+    ctx.setLineDash([6, 4]);
+  }
+
+  if (minVal !== null && botRow !== null) {
+    const y = r2y(botRow);
+    ctx.strokeStyle = '#d6304066';
+    ctx.beginPath(); ctx.moveTo(PX, y); ctx.lineTo(LW - PX, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#d63040cc';
+    ctx.font = `${11/z}px Courier New`;
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + formatMcap(minVal), LW - PX - 4/z, y + 11/z);
+    ctx.setLineDash([6, 4]);
+  }
+
+  ctx.restore();
+}
+
+function render() {
+  ctx.fillStyle='#131722';
+  ctx.fillRect(0,0,cv.width,cv.height);
+
+  const z=ez();
+  const ox = (cv.width  - LW*z)/2;
+  const oy = (cv.height - LH()*z)/2;
+
+  ctx.save();
+  ctx.translate(ox + panX*z, oy + panY*z);
+  ctx.scale(z,z);
+  ctx.beginPath(); ctx.rect(0,0,LW,LH()); ctx.clip();
+
+  drawGrid();
+
+  for (let i=0;i<NC;i++) {
+    if (!candles[i]) continue;
+    if (dragType==='close-only' && editingIdx!=null && (i===editingIdx||i===editingIdx+1)) continue;
+    drawCandle(i,candles[i],1);
+  }
+
+  if (dragging && dragPreview && dragType==='candle')
+    drawCandle(activeIdx, dragPreview, 0.85);
+
+  if (dragging && dragPreview && dragType==='close-only' && editingIdx!=null) {
+    drawCandle(editingIdx, dragPreview, 1);
+    const nx=candles[editingIdx+1];
+    if (nx) drawCandle(editingIdx+1, {...nx, open:dragPreview.close}, 1);
+  }
+
+  drawMarker();
+  const og=prevClose();
+  if (og!==null && !dragging) drawOpenGuide(og);
+  drawMcapLines(z);
+
+  ctx.restore();
+
+  // overlay — drawn after restore so it's not clipped
+  if (ovImg) {
+    const op = parseInt(document.getElementById('ovOpacity').value)/100;
+    ctx.save();
+    ctx.translate(ox + panX*z, oy + panY*z);
+    ctx.scale(z, z);
+    ctx.globalAlpha = op;
+    ctx.drawImage(ovImg, ovX, ovY, ovW, ovH);
+    ctx.globalAlpha = 1;
+    if (ovSelected) {
+      // bright selection border + resize handle
+      ctx.strokeStyle = '#4488ff';
+      ctx.lineWidth = 2/z;
+      ctx.setLineDash([6/z, 3/z]);
+      ctx.strokeRect(ovX, ovY, ovW, ovH);
+      ctx.setLineDash([]);
+      const hs = 12/z;
+      ctx.fillStyle = '#26a07a';
+      ctx.fillRect(ovX+ovW-hs/2, ovY+ovH-hs/2, hs, hs);
+    }
+    ctx.restore();
+  }
+
+  // wick diagonal crosshair marker
+  if (wickCutDiagMarker) {
+    ctx.save();
+    const mx = wickCutDiagMarker.sx, my = wickCutDiagMarker.sy;
+    const arm = 20, gap = 5;
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(mx-arm,my); ctx.lineTo(mx-gap,my); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx+arm,my); ctx.lineTo(mx+gap,my); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx,my-arm); ctx.lineTo(mx,my-gap); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx,my+gap); ctx.lineTo(mx,my+arm); ctx.stroke();
+    ctx.shadowColor = '#f0b429'; ctx.shadowBlur = 12;
+    ctx.fillStyle = '#f0b429';
+    ctx.beginPath(); ctx.arc(mx, my, 5, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  // candle diagonal crosshair marker
+  if (cutDiagMarker) {
+    ctx.save();
+    const mx = cutDiagMarker.sx, my = cutDiagMarker.sy;
+    const arm = 20, gap = 5;
+    // shadow for contrast
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(mx-arm,my); ctx.lineTo(mx-gap,my); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx+gap,my); ctx.lineTo(mx+arm,my); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx,my-arm); ctx.lineTo(mx,my-gap); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx,my+gap); ctx.lineTo(mx,my+arm); ctx.stroke();
+    // colored dot with glow
+    ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 12;
+    ctx.fillStyle = '#a855f7';
+    ctx.beginPath(); ctx.arc(mx, my, 5, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  updateOvLockBtn();
+  document.getElementById('topbar-info').textContent =
+    `candle ${activeIdx+1}/${NC}  ·  ${Math.round(zoom*100)}%`;
+}
+
+// ── Mouse ─────────────────────────────────────────────────────────────────────
+cv.addEventListener('contextmenu', e=>e.preventDefault());
+
+cv.addEventListener('mousemove', e=>{
+  const {x,y}=evL(e);
+  hoverIdx=x2i(x);
+
+  // map pan
+  if (isPanning && panStart) {
+    const z = ez();
+    const r = cv.getBoundingClientRect();
+    const dsx = e.clientX - r.left - panStart.sx;
+    const dsy = e.clientY - r.top  - panStart.sy;
+    panX = panStart.panX + dsx/z;
+    panY = panStart.panY + dsy/z;
+    clampPan();
+    render();
+    return;
+  }
+
+  if (!dragging) { render(); return; }
+
+  if (dragType==='candle') {
+    const cr=y2r(snapY(y));
+    dragPreview={open:dragOpenRow, close:cr, high:null, low:null};
+  }
+  if (dragType==='candle-flat') {
+    // flatten all join points from start to cursor to the fixed row
+    paintJoins(paintStartIdx, x2i(x), () => paintFixedRow);
+  }
+  if (dragType==='candle-angle') {
+    // join points linearly interpolate from startRow to cursor Y
+    const curRow = y2r(y);
+    const curIdx = x2i(x);
+    paintJoins(paintStartIdx, curIdx, (i, lo, hi) => {
+      const t = hi===lo ? 0 : (i-lo)/(hi-lo);
+      return Math.round(paintStartRow + t*(curRow - paintStartRow));
+    });
+  }
+  if (dragType==='candle-freeform') {
+    const curIdx = Math.max(0, Math.min(NC-1, x2i(x)));
+    const curRow = y2r(y);
+    const lo = Math.min(paintStartIdx, curIdx), hi = Math.max(paintStartIdx, curIdx);
+    for (let i = lo; i <= hi; i++) {
+      if (candles[i]) setJoin(i, curRow);
+    }
+    paintStartIdx = curIdx;
+  }
+  if (dragType==='chop-bottom') {
+    const curIdx = Math.max(0, Math.min(NC-1, x2i(x)));
+    const curRow = cutStraightRow !== null ? cutStraightRow : y2r(y);
+    const lo = Math.min(paintStartIdx, curIdx), hi = Math.max(paintStartIdx, curIdx);
+    for (let i = lo; i <= hi; i++) chopBottom(i, curRow);
+    paintStartIdx = curIdx;
+  }
+  if (dragType==='chop-top') {
+    const curIdx = Math.max(0, Math.min(NC-1, x2i(x)));
+    const curRow = cutStraightRow !== null ? cutStraightRow : y2r(y);
+    const lo = Math.min(paintStartIdx, curIdx), hi = Math.max(paintStartIdx, curIdx);
+    for (let i = lo; i <= hi; i++) chopTop(i, curRow);
+    paintStartIdx = curIdx;
+  }
+  if (dragType==='close-only') {
+    const cr=y2r(snapY(y));
+    const c=candles[editingIdx];
+    dragPreview={open:dragOpenRow, close:cr, high:c.high, low:c.low};
+    const nx=candles[editingIdx+1];
+    if (nx) nx.open=cr;
+  }
+  if (dragType==='wick-high') {
+    const c=candles[wickTarget]; if(!c) return;
+    const bt=Math.min(c.open,c.close);
+    const row=Math.min(y2r(snapY(y)),bt);
+    candles[wickTarget]={...c,high:row};
+  }
+  if (dragType==='wick-low') {
+    const c=candles[wickTarget]; if(!c) return;
+    const bb=Math.max(c.open,c.close);
+    const row=Math.max(y2r(snapY(y)),bb);
+    candles[wickTarget]={...c,low:row};
+  }
+  if (dragType==='wick-straight') {
+    const i=x2i(x);
+    if (i>=0&&i<NC) applyWick(i,wickFixedRow,wickSide);
+  }
+  if (dragType==='wick-freeform') {
+    const i=x2i(x);
+    if (i>=0&&i<NC) applyWick(i,y2r(y),wickSide);
+  }
+  if (dragType==='wick-cut-straight') {
+    const curIdx = Math.max(0, Math.min(NC-1, x2i(x)));
+    const row = cutStraightRow !== null ? cutStraightRow : y2r(y);
+    const lo = Math.min(paintStartIdx, curIdx), hi = Math.max(paintStartIdx, curIdx);
+    for (let i = lo; i <= hi; i++) if (candles[i]) applyWick(i, row, wickCutSide, true);
+    paintStartIdx = curIdx;
+  }
+  if (dragType==='wick-cut-arc') {
+    const curIdx = Math.max(0, Math.min(NC-1, x2i(x)));
+    const lo = Math.min(paintStartIdx, curIdx), hi = Math.max(paintStartIdx, curIdx);
+    for (let i = lo; i <= hi; i++) if (candles[i]) applyWick(i, y2r(y), wickCutSide, true);
+    paintStartIdx = curIdx;
+  }
+  render();
+});
+
+cv.addEventListener('mousedown', e=>{
+  e.preventDefault();
+  const {x,y}=evL(e);
+  const idx=x2i(x);
+  const row=y2r(y);
+
+  // ── Cut mode ─────────────────────────────────────────────────────────────
+  if (cutMode && e.button !== 1 && !spaceDown) {
+    e.preventDefault();
+    const isTop = e.button === 2;
+    const row = y2r(y);
+
+    // ── WICK CUT MODE ────────────────────────────────────────────────────────
+    if (editMode === 'wicks') {
+      const side = isTop ? 'high' : 'low';
+      wickCutSide = side;
+      if (cutMode === 'straight') {
+        saveHistory();
+        paintStartIdx = idx;
+        dragging = true;
+        dragType = 'wick-cut-straight';
+        cutStraightRow = row;
+        if (candles[idx]) applyWick(idx, row, side, true);
+      } else if (cutMode === 'diagonal') {
+        if (!wickCutDiag1) {
+          const r = cv.getBoundingClientRect();
+          const sz = ez();
+          const ox2 = (cv.width - LW*sz)/2;
+          const oy2 = (cv.height - LH()*sz)/2;
+          wickCutDiag1 = { idx, row, side };
+          wickCutDiagMarker = {
+            sx: (cx(idx)+CW/2)*sz + ox2 + panX*sz,
+            sy: r2y(row)*sz + oy2 + panY*sz
+          };
+          render();
+        } else {
+          applyWickDiagonal(wickCutDiag1, { idx, row });
+        }
+      } else if (cutMode === 'arc') {
+        saveHistory();
+        paintStartIdx = idx;
+        dragging = true;
+        dragType = 'wick-cut-arc';
+        if (candles[idx]) applyWick(idx, row, side, true);
+      }
+      return;
+    }
+
+    // ── CANDLE CUT MODE ──────────────────────────────────────────────────────
+    const applyFn = isTop ? chopTop : chopBottom;
+    if (cutMode === 'straight') {
+      // drag cuts a flat horizontal line at click Y - lock row on mousedown
+      saveHistory();
+      paintStartIdx = idx;
+      dragging = true;
+      dragType = isTop ? 'chop-top' : 'chop-bottom';
+      cutStraightRow = row; // lock this row for the entire drag
+      if (candles[idx]) applyFn(idx, row);
+    } else if (cutMode === 'diagonal') {
+      if (!cutDiag1) {
+        // first click: store marker
+        const r = cv.getBoundingClientRect();
+        const sz = ez();
+        const ox2 = (cv.width - LW*sz)/2;
+        const oy2 = (cv.height - LH()*sz)/2;
+        cutDiag1 = { idx, row, isTop };
+        cutDiagMarker = {
+          sx: (cx(idx)+CW/2)*sz + ox2 + panX*sz,
+          sy: r2y(row)*sz + oy2 + panY*sz
+        };
+        render();
+      } else {
+        // second click: interpolate and apply
+        saveHistory();
+        const c1 = cutDiag1, c2 = { idx, row };
+        const lo = Math.min(c1.idx, c2.idx), hi = Math.max(c1.idx, c2.idx);
+        // If user drew right-to-left, c1 is the right point — swap rows so
+        // interpolation always goes left-to-right correctly
+        const leftRow  = c1.idx <= c2.idx ? c1.row : c2.row;
+        const rightRow = c1.idx <= c2.idx ? c2.row : c1.row;
+        for (let i = lo; i <= hi; i++) {
+          const t = hi===lo ? 0 : (i-lo)/(hi-lo);
+          const r2 = Math.round(leftRow + t*(rightRow - leftRow));
+          if (candles[i]) (c1.isTop ? chopTop : chopBottom)(i, r2);
+        }
+        cutDiag1 = null; cutDiagMarker = null;
+        render();
+      }
+    } else if (cutMode === 'arc') {
+      saveHistory();
+      paintStartIdx = idx;
+      dragging = true;
+      dragType = isTop ? 'chop-top' : 'chop-bottom';
+      if (candles[idx]) applyFn(idx, row);
+    }
+    return;
+  }
+
+  // ── Overlay drag ──────────────────────────────────────────────────────────
+  if (ovImg && ovSelected) {
+    const hs=12/ez();
+    if (x>=ovX+ovW-hs&&x<=ovX+ovW+hs&&y>=ovY+ovH-hs&&y<=ovY+ovH+hs) {
+      ovDrag='resize'; ovDS={x,y,ox:ovX,oy:ovY,ow:ovW,oh:ovH,ar:ovW/ovH}; return;
+    }
+    if (x>=ovX&&x<=ovX+ovW&&y>=ovY&&y<=ovY+ovH) {
+      ovDrag='move'; ovDS={x,y,ox:ovX,oy:ovY,ow:ovW,oh:ovH}; return;
+    }
+  }
+
+  // ── Middle click or space+drag = pan ─────────────────────────────────────
+  if (e.button===1 || (e.button===0 && spaceDown)) {
+    e.preventDefault();
+    isPanning = true;
+    const r = cv.getBoundingClientRect();
+    panStart = { sx: e.clientX-r.left, sy: e.clientY-r.top, panX, panY };
+    cv.style.cursor = 'grabbing';
+    cursorSX = -999; cursorSY = -999;
+    return;
+  }
+
+  if (eraseMode) return;
+
+  // ── Wick draw mode: left=high, right=low ────────────────────────────────
+  if (wickDrawMode && (e.button===0 || e.button===2) && !spaceDown) {
+    const c=candles[idx]; if(!c) return;
+    const side = e.button===0 ? 'high' : 'low';
+    saveHistory();
+    dragging=true; wickTarget=idx; wickSide=side;
+    dragType='wick-freeform';
+    applyWick(idx, row, side);
+    render(); return;
+  }
+
+  // ── Right click: wicks ────────────────────────────────────────────────────
+  if (e.button===2) {
+    const c=candles[idx]; if(!c) return;
+    const bt=Math.min(c.open,c.close), bb=Math.max(c.open,c.close);
+    const isHigh=row<=bt;
+    dragging=true; wickTarget=idx;
+    wickSide=isHigh?'high':'low';
+
+    saveHistory();
+    if (e.shiftKey) {
+      dragType=e.ctrlKey||e.metaKey?'wick-freeform':'wick-straight';
+      wickFixedRow=row;
+      applyWick(idx,row,wickSide);
+    } else {
+      dragType=isHigh?'wick-high':'wick-low';
+      if (isHigh) candles[idx]={...c,high:row};
+      else        candles[idx]={...c,low:row};
+    }
+    render(); return;
+  }
+
+  // ── Left click ────────────────────────────────────────────────────────────
+  if (e.button===0) {
+    // join point detection
+    if (idx>=0&&idx<NC) {
+      // check join left of click (prev close == this open)
+      const L=candles[idx-1], R=candles[idx];
+      if (L&&R&&Math.abs(row-L.close)<=JOIN_T) {
+        saveHistory();
+        editingIdx=idx-1; dragging=true; dragType='close-only';
+        dragOpenRow=L.open; dragPreview={...L}; render(); return;
+      }
+      // check join right of click (this close == next open)
+      const L2=candles[idx], R2=candles[idx+1];
+      if (L2&&R2&&Math.abs(row-L2.close)<=JOIN_T) {
+        saveHistory();
+        editingIdx=idx; dragging=true; dragType='close-only';
+        dragOpenRow=L2.open; dragPreview={...L2}; render(); return;
+      }
+      // last candle close
+      if (candles[idx]&&!candles[idx+1]&&Math.abs(row-candles[idx].close)<=JOIN_T) {
+        const c=candles[idx];
+        saveHistory();
+        editingIdx=idx; dragging=true; dragType='close-only';
+        dragOpenRow=c.open; dragPreview={...c}; render(); return;
+      }
+    }
+
+    // modifier keys on EXISTING candles = paint join points
+    if (candles[idx] && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+      const closeRow = y2r(y);
+      saveHistory();
+      paintStartIdx = idx;
+      paintStartRow = closeRow;
+      paintFixedRow = closeRow;
+      dragging = true;
+
+      if (e.shiftKey && (e.ctrlKey||e.metaKey)) {
+        // ctrl+shift: chop top edge freeform
+        dragType = 'chop-top';
+        chopTop(idx, closeRow);
+      } else if (e.shiftKey) {
+        // shift: two-click angle on join points
+        if (!shiftClick1) {
+          shiftClick1 = { idx, row: closeRow };
+          dragging = false;
+          render(); return;
+        } else {
+          const c1 = shiftClick1, c2 = { idx, row: closeRow };
+          paintJoins(c1.idx, c2.idx, (i, lo, hi) => {
+            const t = hi===lo ? 0 : (i-lo)/(hi-lo);
+            return Math.round(c1.row + t*(c2.row - c1.row));
+          });
+          shiftClick1 = null;
+          dragging = false;
+          render(); return;
+        }
+      } else {
+        // ctrl alone: chop bottom edge freeform
+        dragType = 'chop-bottom';
+        chopBottom(idx, closeRow);
+      }
+      render(); return;
+    }
+
+    // new candle (no modifiers, or empty column)
+    if (idx<0||idx>=NC||candles[idx]) return;
+    const hasAny=candles.some(c=>c!==null);
+    if (hasAny&&idx!==activeIdx) return;
+    if (!hasAny) activeIdx=idx;
+
+    const openRow  = prevClose() ?? y2r(y);
+    const initCloseRow = y2r(y);
+    editingIdx  = activeIdx;
+    dragOpenRow = openRow;
+
+    saveHistory();
+    dragging=true; dragType='candle';
+    dragPreview={open:openRow, close:initCloseRow, high:null, low:null};
+    render();
+  }
+});
+
+window.addEventListener('mousemove', e=>{
+  if (!ovDrag) return;
+  const {x,y}=evL(e);
+  const dx=x-ovDS.x, dy=y-ovDS.y;
+  if (ovDrag==='move')   { ovX=ovDS.ox+dx; ovY=ovDS.oy+dy; }
+  if (ovDrag==='resize') {
+    if (lastEvt && lastEvt.ctrlKey) {
+      // Ctrl = lock aspect ratio — use whichever axis moved more
+      const newW = Math.max(20, ovDS.ow + dx);
+      ovW = newW;
+      ovH = newW / ovDS.ar;
+    } else if (lastEvt && lastEvt.shiftKey) {
+      // Shift = resize from center
+      const newW = Math.max(20, ovDS.ow + dx*2);
+      const newH = Math.max(20, ovDS.oh + dy*2);
+      ovX = ovDS.ox - (newW - ovDS.ow)/2;
+      ovY = ovDS.oy - (newH - ovDS.oh)/2;
+      ovW = newW; ovH = newH;
+    } else {
+      ovW = Math.max(20, ovDS.ow+dx);
+      ovH = Math.max(20, ovDS.oh+dy);
+    }
+  }
+  render();
+});
+
+window.addEventListener('mouseup', e=>{
+  ovDrag=null; ovDS=null;
+  if (isPanning) {
+    isPanning=false; panStart=null;
+    cv.style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' viewBox=\'0 0 32 32\'%3E%3Cline x1=\'16\' y1=\'2\' x2=\'16\' y2=\'12\' stroke=\'black\' stroke-width=\'3\'/%3E%3Cline x1=\'16\' y1=\'20\' x2=\'16\' y2=\'30\' stroke=\'black\' stroke-width=\'3\'/%3E%3Cline x1=\'2\' y1=\'16\' x2=\'12\' y2=\'16\' stroke=\'black\' stroke-width=\'3\'/%3E%3Cline x1=\'20\' y1=\'16\' x2=\'30\' y2=\'16\' stroke=\'black\' stroke-width=\'3\'/%3E%3Cline x1=\'16\' y1=\'2\' x2=\'16\' y2=\'12\' stroke=\'white\' stroke-width=\'1.5\'/%3E%3Cline x1=\'16\' y1=\'20\' x2=\'16\' y2=\'30\' stroke=\'white\' stroke-width=\'1.5\'/%3E%3Cline x1=\'2\' y1=\'16\' x2=\'12\' y2=\'16\' stroke=\'white\' stroke-width=\'1.5\'/%3E%3Cline x1=\'20\' y1=\'16\' x2=\'30\' y2=\'16\' stroke=\'white\' stroke-width=\'1.5\'/%3E%3Ccircle cx=\'16\' cy=\'16\' r=\'2\' fill=\'white\' stroke=\'black\' stroke-width=\'1\'/%3E%3C/svg%3E") 16 16, crosshair';
+    return;
+  }
+  if (!dragging) return;
+  dragging=false;
+
+  if (dragType==='candle'&&dragPreview) {
+    candles[editingIdx]={...dragPreview};
+    if (editingIdx===activeIdx&&activeIdx<NC-1) {
+      activeIdx++;
+      while(activeIdx<NC-1&&candles[activeIdx]) activeIdx++;
+    }
+    editingIdx=null;
+  }
+  if (['candle-flat','candle-angle','candle-freeform','chop-bottom','chop-top'].includes(dragType)) {
+    paintStartIdx=null; paintStartRow=null; paintFixedRow=null;
+  }
+  // wick drags already saved at mousedown
+  if (dragType==='close-only'&&dragPreview) {
+    candles[editingIdx]={...dragPreview};
+    const nx=candles[editingIdx+1];
+    if (nx) candles[editingIdx+1]={...nx,open:dragPreview.close};
+    editingIdx=null;
+  }
+  dragPreview=null; dragType=null; wickTarget=null;
+  render();
+});
+
+cv.addEventListener('dblclick', ()=>{ if(activeIdx<NC-1) activeIdx++; render(); });
+
+cv.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const delta = e.deltaY>0 ? -0.15 : 0.15;
+  const {x: lx, y: ly} = evL(e);
+  setZoom(zoom + delta, lx, ly);
+},{passive:false});
+
+cv.addEventListener('click', e=>{
+  if (!eraseMode) return;
+  const {x}=evL(e);
+  const idx=x2i(x);
+  if (idx>=0&&idx<NC) {
+    candles[idx]=null;
+    if (idx<=activeIdx&&activeIdx>0) activeIdx=idx;
+    render();
+  }
+});
+
+let spaceDown = false;
+window.addEventListener('keydown', e=>{
+  if (e.key===' ' && !spaceDown) {
+    spaceDown=true;
+    cv.style.cursor='grab';
+    e.preventDefault();
+  }
+  if (e.key==='Escape' && cutMode) { setCutMode(cutMode); showToolHint(null); wickCutDiag1=null; wickCutDiagMarker=null; render(); }
+  if (e.key==='Escape' && wickDrawMode) { wickDrawMode=false; document.getElementById('wick-draw-btn')?.classList.remove('active'); document.getElementById('tool-hint').style.display='none'; }
+  if (e.key==='e'||e.key==='E') { eraseMode=true; cv.style.cursor='not-allowed'; }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey) undoLast();
+  if ((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))) redoLast();
+});
+window.addEventListener('keyup', e=>{
+  if (e.key===' ') { spaceDown=false; if (!isPanning) cv.style.cursor='none'; }
+  if (e.key==='e'||e.key==='E') { eraseMode=false; cv.style.cursor='none'; }
+});
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+function undoLast() {
+  if (!history.length) return;
+  redoStack.push({ candles: candles.map(c => c ? {...c} : null), activeIdx });
+  const snap = history.pop();
+  candles.splice(0, NC, ...snap.candles);
+  activeIdx = snap.activeIdx;
+  render();
+}
+
+function redoLast() {
+  if (!redoStack.length) return;
+  history.push({ candles: candles.map(c => c ? {...c} : null), activeIdx });
+  const snap = redoStack.pop();
+  candles.splice(0, NC, ...snap.candles);
+  activeIdx = snap.activeIdx;
+  render();
+}
+function clearAll() { saveHistory(); candles.fill(null); activeIdx=0; panX=0; panY=0; render(); }
+
+function fillCandles() {
+  saveHistory();
+  // Reset everything, fill every column top to bottom
+  for (let i = 0; i < NC; i++) {
+    const open  = i % 2 === 0 ? ROWS - 1 : 0;
+    const close = i % 2 === 0 ? 0 : ROWS - 1;
+    candles[i] = { open, close, high: null, low: null };
+  }
+  activeIdx = NC - 1;
+  render();
+}
+
+function fillWicks() {
+  saveHistory();
+  // For each candle, extend wicks to the very top (row 0) and bottom (row ROWS-1)
+  for (let i = 0; i < NC; i++) {
+    const c = candles[i];
+    if (!c) continue;
+    candles[i] = { ...c, high: 0, low: ROWS - 1 };
+  }
+  render();
+}
+function toggleFS() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+}
+function showLegend()  { document.getElementById('legend-box').style.display='block'; document.getElementById('legend-bg').style.display='block'; }
+function closeLegend() { document.getElementById('legend-box').style.display='none';  document.getElementById('legend-bg').style.display='none'; }
+
+let editMode = 'candles'; // 'candles' or 'wicks'
+let wickDrawMode = false;
+let cutMode  = null;
+let cutDiag1 = null;
+let cutDiagMarker = null;
+let cutStraightRow = null; // locked row for straight cuts
+let lastEvt = null;
+let wickCutSide = 'high';  // which wick side for wick cut modes
+let cursorSX = -999, cursorSY = -999; // screen position for custom cursor
+
+const ALL_HINTS = {"undo": {"name": "UNDO", "body": "<span>Ctrl+Z</span> — undo last action"}, "clear": {"name": "CLEAR", "body": "Remove all candles from canvas"}, "fill-candles": {"name": "FILL CANDLES", "body": "Fill canvas with full-height candles"}, "fill-wicks": {"name": "FILL WICKS", "body": "Extend all wicks to canvas edges"}, "straight": {"name": "STRAIGHT CUT", "body": "<span>Left-Click Drag</span> — cut bottom edge<br><span>Right-Click Drag</span> — cut top edge<br><span>Esc</span> — exit mode"}, "diagonal": {"name": "DIAGONAL CUT", "body": "<span>Click ×2</span> — set start & end points<br><span>Left-Click</span> — cut bottom edge<br><span>Right-Click</span> — cut top edge<br><span>Esc</span> — exit mode"}, "arc": {"name": "ARC CUT", "body": "<span>Left-Click Drag</span> — freeform bottom cut<br><span>Right-Click Drag</span> — freeform top cut<br><span>Esc</span> — exit mode"}, "reset": {"name": "RESET VIEW", "body": "Reset zoom and pan to default"}, "fullscreen": {"name": "FULLSCREEN", "body": "Toggle fullscreen mode"}, "overlay": {"name": "IMAGE OVERLAY", "body": "Load an image to trace over the canvas"}, "mcap": {"name": "MARKET CAP", "body": "Set min/max market cap reference lines"}, "export": {"name": "EXPORT PNG", "body": "Download canvas as a PNG image"}, "help": {"name": "HELP", "body": "Show all hotkeys and controls"}, "mode-candles": {"name": "CANDLE MODE", "body": "Draw & cut candle bodies<br><span>Left drag</span> — draw candle<br><span>Right drag</span> — draw wick"}, "mode-wicks": {"name": "WICK MODE", "body": "Cut tools apply to wicks<br><span>Left-Click</span> — high wick<br><span>Right-Click</span> — low wick"}};
+
+const TOOL_HINTS = {
+  candles: {
+    'straight': { name: 'STRAIGHT CUT', body: '<span>Left-Click Drag</span> — cut bottom edge<br><span>Right-Click Drag</span> — cut top edge<br><span>Esc</span> — exit mode' },
+    'diagonal': { name: 'DIAGONAL CUT', body: '<span>Click ×2</span> — set start & end points<br><span>Left-Click</span> — cut bottom edge<br><span>Right-Click</span> — cut top edge<br><span>Esc</span> — exit mode' },
+    'arc':      { name: 'ARC CUT',      body: '<span>Left-Click Drag</span> — freeform bottom cut<br><span>Right-Click Drag</span> — freeform top cut<br><span>Esc</span> — exit mode' }
+  },
+  wicks: {
+    'straight': { name: 'WICK STRAIGHT', body: '<span>Left-Click Drag</span> — set high wick flat<br><span>Right-Click Drag</span> — set low wick flat<br><span>Esc</span> — exit mode' },
+    'diagonal': { name: 'WICK DIAGONAL', body: '<span>Click ×2</span> — set start & end points<br><span>Left-Click</span> — angle high wicks<br><span>Right-Click</span> — angle low wicks<br><span>Esc</span> — exit mode' },
+    'arc':      { name: 'WICK ARC',      body: '<span>Left-Click Drag</span> — freeform high wick<br><span>Right-Click Drag</span> — freeform low wick<br><span>Esc</span> — exit mode' }
+  }
+};
+
+function showToolHint(mode) {
+  const el = document.getElementById('tool-hint');
+  if (!mode) { el.style.display='none'; return; }
+  const h = TOOL_HINTS[editMode] && TOOL_HINTS[editMode][mode];
+  if (!h) { el.style.display='none'; return; }
+  document.getElementById('tool-hint-name').textContent = h.name;
+  document.getElementById('tool-hint-body').innerHTML = h.body;
+  el.style.display = 'block';
+  el.style.animation = 'none';
+  el.offsetHeight;
+  el.style.animation = '';
+}
+
+function toggleWickDraw() {
+  wickDrawMode = !wickDrawMode;
+  const btn = document.getElementById('wick-draw-btn');
+  if (btn) btn.classList.toggle('active', wickDrawMode);
+  // show hint
+  const el = document.getElementById('tool-hint');
+  if (wickDrawMode) {
+    document.getElementById('tool-hint-name').textContent = 'DRAW WICKS';
+    document.getElementById('tool-hint-body').innerHTML = '<span>Left-Click Drag</span> — draw high wick<br><span>Right-Click Drag</span> — draw low wick<br><span>Esc</span> — exit';
+    const sb = document.getElementById('sidebar').getBoundingClientRect();
+    el.style.display = 'block';
+    el.style.top = btn.getBoundingClientRect().top + btn.getBoundingClientRect().height/2 + 'px';
+    el.style.left = (sb.right + 12) + 'px';
+    el.style.transform = 'translateY(-50%)';
+    el.style.bottom = 'auto';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function eraseWicks() {
+  saveHistory();
+  for (let i = 0; i < NC; i++) {
+    if (candles[i]) candles[i] = { ...candles[i], high: null, low: null };
+  }
+  render();
+}
+
+function setEditMode(mode) {
+  editMode = mode;
+  document.getElementById('mode-candle-btn').className = 'mode-btn' + (mode==='candles' ? ' candle-active' : '');
+  document.getElementById('mode-wick-btn').className   = 'mode-btn' + (mode==='wicks'   ? ' wick-active'   : '');
+  const lbl = document.getElementById('cut-group-label');
+  if (lbl) lbl.textContent = mode === 'wicks' ? 'Wick Cut' : 'Body Cut';
+  setCutMode(null); // reset cut mode on switch
+}
+
+let sidebarDocked = false;
+
+function toggleDock() {
+  sidebarDocked = !sidebarDocked;
+  const sb = document.getElementById('sidebar');
+  const btn = document.getElementById('dock-btn');
+  if (sidebarDocked) {
+    sb.classList.add('docked');
+    btn.textContent = '⊠ FLOAT';
+    btn.classList.add('docked');
+  } else {
+    sb.classList.remove('docked');
+    // restore centered float position
+    sb.style.left = 'clamp(8px, 1vw, 18px)';
+    sb.style.top = '50%';
+    sb.style.transform = 'translateY(-50%)';
+    btn.textContent = '⊞ DOCK';
+    btn.classList.remove('docked');
+  }
+}
+
+function updateOvLockBtn() {
+  const btn = document.getElementById('ov-lock-btn');
+  if (!btn || !ovImg) { if(btn) btn.style.display='none'; return; }
+  btn.style.display = 'block';
+  btn.textContent = ovSelected ? '🔓 UNLOCK' : '🔒 LOCKED';
+  btn.className = ovSelected ? 'ov-lock-btn' : 'ov-lock-btn locked';
+  // position it over the overlay image on screen
+  const z = ez();
+  const ox2 = (cv.width - LW*z)/2;
+  const oy2 = (cv.height - LH()*z)/2;
+  const r = cv.getBoundingClientRect();
+  const sx = (ovX + ovW/2)*z + ox2 + panX*z + r.left;
+  const sy = (ovY)*z + oy2 + panY*z + r.top - 28;
+  btn.style.left = sx + 'px';
+  btn.style.top  = sy + 'px';
+  btn.style.transform = 'translateX(-50%)';
+}
+
+function toggleOvSelectFromCanvas() {
+  ovSelected = !ovSelected;
+  // sync panel button too
+  const panelBtn = document.getElementById('ov-select-btn');
+  if (panelBtn) {
+    panelBtn.textContent = ovSelected ? '🔓 UNLOCKED — click to lock' : '🔒 LOCKED — click to unlock';
+    panelBtn.style.borderColor = ovSelected ? '#4488ff' : '#556';
+    panelBtn.style.color = ovSelected ? '#4488ff' : '#556';
+  }
+  updateOvLockBtn();
+  render();
+}
+
+function toggleOvSelect() {
+  ovSelected = !ovSelected;
+  const btn = document.getElementById('ov-select-btn');
+  if (btn) {
+    btn.textContent = ovSelected ? '🔓 UNLOCKED — click to lock' : '🔒 LOCKED — click to unlock';
+    btn.style.borderColor = ovSelected ? '#4488ff' : '#556';
+    btn.style.color = ovSelected ? '#4488ff' : '#556';
+  }
+  updateOvLockBtn();
+  render();
+}
+
+function setCutMode(mode) {
+  cutMode = (cutMode === mode) ? null : mode;
+  cutDiag1 = null; cutDiagMarker = null;
+  ['straight','diagonal','arc'].forEach(m => {
+    const b = document.getElementById('cut-'+m+'-btn');
+    if (b) b.classList.toggle('active', cutMode===m);
+  });
+  const hint = document.getElementById('cut-hint');
+  hint.style.display = cutMode ? 'block' : 'none';
+  showToolHint(cutMode);
+  render();
+}
+
+function exportPNG() {
+  // Render at current view to a temp canvas then download
+  const a = document.createElement('a');
+  a.download = 'chart-art.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+}
+
+function loadOverlay(e) {
+  const f=e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      ovImg = img;
+      ovSelected = true;
+      const btn = document.getElementById('ov-select-btn');
+      if (btn) { btn.textContent = '🔓 UNLOCKED — click to lock'; btn.style.borderColor='#4488ff'; btn.style.color='#4488ff'; }
+      updateOvLockBtn();
+      ovW = LW * 0.5;
+      ovH = ovW * (img.height / img.width);
+      ovX = (LW - ovW) / 2;
+      ovY = (LH() - ovH) / 2;
+      render();
+    };
+    img.onerror = () => console.error('image load error');
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+
+cv.addEventListener('mouseleave', () => { cursorSX=-999; cursorSY=-999; render(); });
+
+
+// ── Sidebar button hover tooltips ─────────────────────────────────────────────
+document.getElementById('sidebar').addEventListener('mouseover', function(e) {
+  const btn = e.target.closest('[data-hint]');
+  if (!btn) return;
+  const key = btn.getAttribute('data-hint');
+  const h = ALL_HINTS[key];
+  if (!h) return;
+  const el = document.getElementById('tool-hint');
+  document.getElementById('tool-hint-name').textContent = h.name;
+  document.getElementById('tool-hint-body').innerHTML = h.body;
+  // position to the right of the sidebar
+  const sb = document.getElementById('sidebar');
+  const sbRect = sb.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+  el.style.display = 'block';
+  el.style.bottom = 'auto';
+  el.style.left = 'auto';
+  // place it to the right of sidebar, aligned vertically to button
+  const tipTop = btnRect.top + btnRect.height/2;
+  el.style.top = tipTop + 'px';
+  el.style.left = (sbRect.right + 12) + 'px';
+  el.style.transform = 'translateY(-50%)';
+  el.style.animation = 'none';
+  el.offsetHeight;
+  el.style.animation = 'hintFade 0.15s ease';
+});
+
+document.getElementById('sidebar').addEventListener('mouseleave', function() {
+  document.getElementById('tool-hint').style.display = 'none';
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+resize();
+render();
+
+// ── Draggable Sidebar ─────────────────────────────────────────────────────────
+(function() {
+  const sb = document.getElementById('sidebar');
+  let dragging = false, startX, startY, origLeft, origTop;
+
+  sb.style.cursor = 'grab';
+
+  sb.addEventListener('mousedown', function(e) {
+    // don't drag if clicking a button
+    if (e.target.closest('.tb-btn')) return;
+    if (e.target.closest('#dock-btn')) return;
+    if (e.target.closest('#mode-toggle')) return;
+    dragging = true;
+    sb.style.cursor = 'grabbing';
+    sb.style.transition = 'none';
+    // resolve current position to fixed px values
+    const rect = sb.getBoundingClientRect();
+    origLeft = rect.left;
+    origTop = rect.top;
+    sb.style.left = origLeft + 'px';
+    sb.style.top = origTop + 'px';
+    sb.style.transform = 'none';
+    startX = e.clientX;
+    startY = e.clientY;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    sb.style.left = (origLeft + dx) + 'px';
+    sb.style.top  = (origTop  + dy) + 'px';
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (!dragging) return;
+    dragging = false;
+    sb.style.cursor = 'grab';
+  });
+})();
+</script>
+
+<div id="tool-hint">
+  <div id="tool-hint-name"></div>
+  <div id="tool-hint-body"></div>
+</div>
+<button id="ov-lock-btn" onclick="toggleOvSelectFromCanvas()">🔓 UNLOCK</button>
+<div id="zoom-controls">
+  <button class="zoom-btn" onclick="setZoom(zoom+0.25)" title="Zoom in">+</button>
+  <button class="zoom-btn" onclick="setZoom(zoom-0.25)" title="Zoom out">−</button>
+</div>
+</body>
+</html>
